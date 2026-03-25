@@ -1,13 +1,23 @@
-import { useState } from 'react'
-import './App.css'
-import InscriptionPartenaire from './pages/Inscription.jsx'
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom"
+import Home from "./pages/Home"
+import About from "./pages/About"
+import InscriptionPartenaire from "./pages/Inscription"
 
 function App() {
-
   return (
-    <>
-     <InscriptionPartenaire />
-    </>
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Home</Link> | 
+        <Link to="/about">About</Link>
+         <Link to="/Inscription">Inscription</Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+         <Route path="/Inscription" element={<InscriptionPartenaire />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
