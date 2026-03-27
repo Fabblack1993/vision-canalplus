@@ -2,6 +2,7 @@ import { useState } from "react";
 import logo from "../assets/logo.png";
 
 export default function InscriptionPartenaire() {
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -33,11 +34,24 @@ export default function InscriptionPartenaire() {
 
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Données envoyées :", formData);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://localhost:5000/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+    alert(data.message);
     setEnvoye(true);
-  };
+  } catch (error) {
+    console.error("Erreur lors de l'inscription :", error);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -186,19 +200,29 @@ export default function InscriptionPartenaire() {
           </div>
 
           {/* Mot de passe */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              name="motDePasse"
-              value={formData.motDePasse}
-              onChange={handleChange}
-              required
-              placeholder="Minimum 8 caractères"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
+         <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Mot de passe <span className="text-red-500">*</span>
+  </label>
+  <div className="flex items-center">
+    <input
+      type={showPassword ? "text" : "password"}   // <-- bascule entre visible et masqué
+      name="motDePasse"
+      value={formData.motDePasse}
+      onChange={handleChange}
+      required
+      placeholder="Minimum 8 caractères"
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)} // <-- change l’état
+      className="ml-2 text-sm text-blue-600 hover:underline"
+    >
+      {showPassword ? "Masquer" : "Afficher"}
+    </button>
+  </div>
+           
           </div>
 
           {/* Email (facultatif) */}
