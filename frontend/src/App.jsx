@@ -7,6 +7,7 @@ import LoginForm from "./pages/LoginForm";
 import Services from "./pages/Services";
 import PartnerDashboard from "./pages/PartnersDasboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Boutique from "./pages/Boutique";
 
 
 function App() {
@@ -20,6 +21,8 @@ function App() {
          <Route path="/Inscription" element={<InscriptionPartenaire />} />
          <Route path="/LoginForm" element={<LoginForm />} />
          <Route path="/services" element={<Services />} />
+         <Route path="/boutique" element={<Boutique />} />
+
          <Route path="/partner/dashboard" element={<PartnerDashboard />} />
          <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
