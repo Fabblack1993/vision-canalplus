@@ -1,24 +1,27 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ pour redirection
 import logo from "../assets/logo.png";
 
 export default function InscriptionPartenaire() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    nom: "",
+    name: "",
     prenom: "",
     structure: "",
     pays: "",
     ville: "",
     quartier: "",
     telephone: "",
-    motDePasse: "",
+    password: "",
     email: "",       
   });
 
   const [envoye, setEnvoye] = useState(false);
+  const navigate = useNavigate(); // ✅ hook pour naviguer
+
   const champsObligatoires = [
-    "nom", "prenom", "structure", "pays",
-    "ville", "quartier", "telephone", "motDePasse"
+    "name", "prenom", "structure", "pays",
+    "ville", "quartier", "telephone", "password"
   ];
   const champsRemplis = champsObligatoires.filter(
     (champ) => formData[champ].trim() !== ""
@@ -31,10 +34,9 @@ export default function InscriptionPartenaire() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
@@ -44,11 +46,20 @@ export default function InscriptionPartenaire() {
       body: JSON.stringify(formData),
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+      // ✅ si le backend renvoie une erreur
+      const text = await response.text();
+      throw new Error(text || "Erreur serveur");
+    }
+
+    const data = await response.json(); // ✅ seulement si c’est du JSON
     alert(data.message);
     setEnvoye(true);
+
+    
   } catch (error) {
     console.error("Erreur lors de l'inscription :", error);
+    alert("Échec de l'inscription : " + error.message);
   }
 };
 
@@ -94,8 +105,8 @@ export default function InscriptionPartenaire() {
             </label>
             <input
               type="text"
-              name="nom"
-              value={formData.nom}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               required
               placeholder="Ex: Dupont"
@@ -207,8 +218,8 @@ export default function InscriptionPartenaire() {
   <div className="flex items-center">
     <input
       type={showPassword ? "text" : "password"}   // <-- bascule entre visible et masqué
-      name="motDePasse"
-      value={formData.motDePasse}
+      name="password"
+      value={formData.password}
       onChange={handleChange}
       required
       placeholder="Minimum 8 caractères"

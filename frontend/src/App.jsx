@@ -5,9 +5,10 @@ import About from "./pages/About"
 import InscriptionPartenaire from "./pages/Inscription"
 import LoginForm from "./pages/LoginForm";
 import Services from "./pages/Services";
-import PartnerDashboard from "./pages/PartnersDasboard";
+import PartnersDashboard from "./pages/PartnersDashboard"
 import AdminDashboard from "./pages/AdminDashboard";
 import Boutique from "./pages/Boutique";
+import Reabonnements from "./pages/Reabonnements";
 
 
 function App() {
@@ -23,8 +24,9 @@ function App() {
          <Route path="/services" element={<Services />} />
          <Route path="/boutique" element={<Boutique />} />
 
-         <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+         <Route path="/partner/dashboard" element={<PartnersDashboard />} />
          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+           <Route path="/reabonnement" element={< Reabonnements/>} />
       </Routes>
     </BrowserRouter>
   )

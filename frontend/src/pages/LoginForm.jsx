@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/loginForm.css"; 
 
 function LoginForm() {
-  const [nom, setNom] = useState("");
+  const [name, setNom] = useState("");
   const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ function LoginForm() {
       const response = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nom, contact, password }),
+        body: JSON.stringify({ name, contact, password }),
       });
 
       const data = await response.json();
@@ -40,13 +40,13 @@ function LoginForm() {
 
   return (
     <div className="container">
-      <form className="form" onSubmit={handleSubmit}>
+      <form className="form"onSubmit={handleSubmit}>
         <h2>Connexion</h2>
 
         <input
           type="text"
           placeholder="Nom"
-          value={nom}
+          value={name}
           onChange={(e) => setNom(e.target.value)}
         />
 

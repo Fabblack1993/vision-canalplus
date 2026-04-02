@@ -4,34 +4,40 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const router = express.Router();
 
+
+
 // ---- INSCRIPTION ----
-router.post('/register', async (req, res) => {
-  const { nom, prenom, structure, pays, ville, quartier, telephone, motDePasse, email } = req.body;
+router.post("/register", async (req, res) => {
+  const { name, prenom, structure, pays, ville, quartier, telephone, password, email } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(motDePasse, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
       `INSERT INTO users 
       (name, prenom, structure, pays, ville, quartier, telephone, email, password, role, status) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'partner', 'pending')`,
-      [nom, prenom, structure, pays, ville, quartier, telephone, email, hashedPassword]
+      [name, prenom, structure, pays, ville, quartier, telephone, email, hashedPassword]
     );
 
-    res.json({ message: "Inscription réussie, en attente de validation par l'admin." });
+    res.json({ message: "Inscription réussie, en attente de validation par l'administrateur." });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Erreur SQL :", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
+
+
+
 // ---- LOGIN ----
 router.post('/login', async (req, res) => {
-  const { nom, contact, password } = req.body;
+  const { name, contact, password } = req.body;
 
   try {
     const [rows] = await pool.query(
       "SELECT * FROM users WHERE (email=? OR telephone=?) AND name=?",
-      [contact, contact, nom]
+      [contact, contact, name]
     );
 
     if (rows.length === 0) {
