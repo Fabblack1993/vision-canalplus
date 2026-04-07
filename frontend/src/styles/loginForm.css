@@ -70,5 +70,8 @@ body {
 }
 
 .form button[type="submit"]:hover {
-  background: #333;
+  background: #5994d8;
+}
+.error {
+  border: 2px solid red !important;
 }
