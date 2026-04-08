@@ -13,7 +13,8 @@ export default function InscriptionPartenaire() {
     quartier: "",
     telephone: "",
     password: "",
-    email: "",       
+    email: "",   
+    codePromo: ""    
   });
 
   const [envoye, setEnvoye] = useState(false);
@@ -251,7 +252,20 @@ export default function InscriptionPartenaire() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
-
+{/* Code promo (facultatif) */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Code promo <span className="text-gray-400 text-xs">(facultatif)</span>
+  </label>
+  <input
+    type="text"
+    name="codePromo"
+    value={formData.codePromo}
+    onChange={handleChange}
+    placeholder="Ex: CANAL2026"
+    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
           {/* Bouton Envoyer */}
           <button
             type="submit"

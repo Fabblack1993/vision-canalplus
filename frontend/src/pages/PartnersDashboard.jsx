@@ -40,7 +40,21 @@ export default function PartnerDashboard() {
       .catch(() => setMessage("Erreur de connexion au dashboard"));
   }, []);
 
+const [wallet, setWallet] = useState(0);
+useEffect(() => {
+  const interval = setInterval(() => {
+    fetch("http://localhost:5000/api/partner/dashboard", {
+      headers: { Authorization: localStorage.getItem("token") },
+    })
+      .then(res => res.json())
+      .then(data => setWallet(data.wallet_balance));
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, []);
+
   return (
+    
     <div className="min-h-screen bg-gray-900 p-6">
 
       {/* 🔝 HEADER */}
@@ -66,10 +80,10 @@ export default function PartnerDashboard() {
           <p className="text-2xl">350K</p>
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg text-center text-white">
-          <h2 className="font-bold">Produits</h2>
-          <p className="text-2xl">12</p>
-        </div>
+        <div className="bg-green-600 p-4 rounded-lg text-center text-white">
+  <h2 className="font-bold">Portefeuille</h2>
+  <p className="text-2xl">{wallet} FCFA</p>
+</div>
       </div>
 
       {/* 🔘 ACTIONS */}
@@ -100,34 +114,11 @@ export default function PartnerDashboard() {
           target="_blank"
           className="bg-gray-700 text-white p-4 rounded shadow hover:bg-gray-600 text-center"
         >
-          Assistance
+          Technicien
         </a>
       </div>
 
-      {/* 📊 GRAPHIQUE */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4 text-center text-gray-900">
-          Commissions par formule Canal+
-        </h2>
-
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={statistique}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <XAxis
-              dataKey="formule"
-              tick={{ fontSize: 12 }}
-              angle={-30}
-              textAnchor="end"
-            />
-            <YAxis />
-            <Tooltip formatter={(value) => `${value} FCFA`} />
-            <Legend />
-            <Bar dataKey="commissions" fill="#16a34a" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+     
     </div>
   );
 }

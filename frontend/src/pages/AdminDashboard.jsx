@@ -13,12 +13,11 @@ import {
 export default function AdminDashboard() {
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
-const [commissionTotal, setCommissionTotal] = useState(0);
-
+  const [commissionTotal, setCommissionTotal] = useState(0);
+  const [reabonnementTotal, setReabonnementTotal] = useState(0);
+  const [chartData, setChartData] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [chartData, setChartData] = useState([]);
-const [reabonnementTotal, setReabonnementTotal] = useState(0);
 
   const [showForm, setShowForm] = useState(false);
   const [newPartner, setNewPartner] = useState({
@@ -30,25 +29,10 @@ const [reabonnementTotal, setReabonnementTotal] = useState(0);
     quartier: "",
     telephone: "",
     email: "",
-    password: ""
+    password: "",
+    codePromo: "",
+    wallet_balance:""
   });
-
-const fetchStats = async () => {
-  try {
-    const res1 = await axios.get("http://localhost:5000/api/stats/abonnements-mensuels");
-    const res2 = await axios.get("http://localhost:5000/api/stats/reabonnements-total");
-
-    setChartData(res1.data);
-    setReabonnementTotal(res2.data.total);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-useEffect(() => {
-  fetchPartners();
-  fetchStats();
-}, []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const partnersPerPage = 5;
@@ -61,13 +45,22 @@ useEffect(() => {
     pays: "",
     ville: "",
     quartier: "",
-    telephone: ""
+    telephone: "",
+    codePromo: ""
   });
   const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    fetchPartners();
-  }, []);
+  // ================= FETCH DATA =================
+  const fetchStats = async () => {
+    try {
+      const res1 = await axios.get("http://localhost:5000/api/stats/abonnements-mensuels");
+      const res2 = await axios.get("http://localhost:5000/api/stats/reabonnements-total");
+      setChartData(res1.data);
+      setReabonnementTotal(res2.data.total);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchPartners = async () => {
     try {
@@ -79,6 +72,11 @@ useEffect(() => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPartners();
+    fetchStats();
+  }, []);
 
   // ================= ACTIONS =================
   const approvePartner = async (id) => {
@@ -117,7 +115,8 @@ useEffect(() => {
       pays: p.pays,
       ville: p.ville,
       quartier: p.quartier,
-      telephone: p.telephone
+      telephone: p.telephone,
+      codePromo: p.codePromo
     });
     setShowEdit(true);
   };
@@ -128,30 +127,44 @@ useEffect(() => {
     fetchPartners();
   };
 
+  const validateReabonnement = async (id) => {
+    try {
+      const res = await axios.post(
+        `http://localhost:5000/api/partners/${id}/validate-reabonnement`,
+        { formulePrix: 10000 }
+      );
+      setCommissionTotal(prev => prev + res.data.commission);
+      fetchPartners();
+    } catch (err) {
+      console.error("Erreur validation :", err);
+      alert("Échec validation réabonnement");
+    }
+  };
 
-const validateReabonnement = async (id) => {
-  try {
-    const res = await axios.post(
-      `http://localhost:5000/api/partners/${id}/validate-reabonnement`,
-      { formulePrix: 10000 } // exemple prix formule
-    );
-    setCommissionTotal(prev => prev + res.data.commission);
-    fetchPartners();
-  } catch (err) {
-    console.error("Erreur validation :", err);
-    alert("Échec validation réabonnement");
-  }
-};
+  const creditWallet = async (id) => {
+    const amount = prompt("Montant à créditer (FCFA) :");
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      return alert("Montant invalide");
+    }
 
+    try {
+      const res = await axios.post(`http://localhost:5000/api/partners/${id}/credit`, {
+        amount: Number(amount)
+      });
+     alert(`Portefeuille crédité ! Nouveau solde : ${res.data.wallet_balance} FCFA`);
+      fetchPartners();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors du crédit");
+    }
+  };
 
   // ================= FILTRE =================
   const filteredPartners = partners.filter((p) => {
     const matchSearch =
       (p.name?.toLowerCase().includes(search.toLowerCase())) ||
       (p.email?.toLowerCase().includes(search.toLowerCase()));
-
     const matchFilter = filter === "all" || p.status === filter;
-
     return matchSearch && matchFilter;
   });
 
@@ -162,7 +175,6 @@ const validateReabonnement = async (id) => {
   const totalPages = Math.ceil(filteredPartners.length / partnersPerPage);
 
   // ================= KPIs =================
-  
   const total = partners.length;
   const approved = partners.filter(p => p.status === "approved").length;
   const pending = partners.filter(p => p.status === "pending").length;
@@ -173,37 +185,33 @@ const validateReabonnement = async (id) => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold mb-6">Dashboard Admin</h1>
-<div className="bg-gray-800 p-4 rounded mb-6">
-  <h2 className="text-xl mb-4">Abonnements mensuels</h2>
 
-  <ResponsiveContainer width="100%" height={300}>
-    <LineChart data={chartData}>
-      <CartesianGrid stroke="#444" />
-      <XAxis dataKey="month" stroke="#ccc" />
-      <YAxis stroke="#ccc" />
-      <Tooltip />
-      <Line type="monotone" dataKey="abonnements" stroke="#3b82f6" strokeWidth={3} />
-    </LineChart>
-  </ResponsiveContainer>
-</div>
+      {/* ===== CHART ===== */}
+      <div className="bg-gray-800 p-4 rounded mb-6">
+        <h2 className="text-xl mb-4">Abonnements mensuels</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid stroke="#444" />
+            <XAxis dataKey="month" stroke="#ccc" />
+            <YAxis stroke="#ccc" />
+            <Tooltip />
+            <Line type="monotone" dataKey="abonnements" stroke="#3b82f6" strokeWidth={3} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* ===== KPIs ===== */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-800 p-4 rounded"><p>Total</p><h2 className="text-2xl">{total}</h2></div>
         <div className="bg-green-600 p-4 rounded"><p>Validés</p><h2 className="text-2xl">{approved}</h2></div>
         <div className="bg-yellow-500 p-4 rounded"><p>En attente</p><h2 className="text-2xl">{pending}</h2></div>
         <div className="bg-red-600 p-4 rounded"><p>Rejetés</p><h2 className="text-2xl">{rejected}</h2></div>
-        <div className="bg-blue-600 p-4 rounded">
-  <p>Commission totale</p>
-  <h2 className="text-2xl">{commissionTotal} FCFA</h2>
-</div>
-
+        <div className="bg-blue-600 p-4 rounded"><p>Commission totale</p><h2 className="text-2xl">{commissionTotal} FCFA</h2></div>
       </div>
 
       {/* ===== SEARCH + FILTER ===== */}
       <div className="flex gap-4 mb-4">
-        <input type="text" placeholder="Rechercher..." value={search}
-          onChange={(e) => setSearch(e.target.value)} className="p-2 rounded bg-gray-700" />
+        <input type="text" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} className="p-2 rounded bg-gray-700" />
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="p-2 rounded bg-gray-700">
           <option value="all">Tous</option>
           <option value="approved">Validés</option>
@@ -225,6 +233,8 @@ const validateReabonnement = async (id) => {
             <th className="px-4 py-2 text-left">Ville</th>
             <th className="px-4 py-2 text-left">Quartier</th>
             <th className="px-4 py-2 text-left">Téléphone</th>
+            <th className="px-4 py-2 text-left">Code Promo</th>
+            <th className="px-4 py-2 text-left">Portefeuille</th>
             <th className="px-4 py-2 text-left">Statut</th>
             <th className="px-4 py-2 text-center">Actions</th>
           </tr>
@@ -240,6 +250,8 @@ const validateReabonnement = async (id) => {
               <td className="px-4 py-2">{p.ville || "—"}</td>
               <td className="px-4 py-2">{p.quartier || "—"}</td>
               <td className="px-4 py-2">{p.telephone || "—"}</td>
+              <td className="px-4 py-2">{p.codePromo || "—"}</td>
+              <td className="px-4 py-2">{p.wallet_balance || 0} FCFA</td>
               <td className="px-4 py-2">
                 <span className={`px-2 py-1 rounded ${
                   p.status === "approved" ? "bg-green-500" :
@@ -253,64 +265,34 @@ const validateReabonnement = async (id) => {
                 <button onClick={() => rejectPartner(p.id)}>✖</button>
                 <button onClick={() => openEditForm(p)}>✏️</button>
                 <button onClick={() => deletePartner(p.id)}>🗑</button>
-                
-        <button
-  onClick={() => validateReabonnement(p.id)}
-  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-200"
->
-  <span>Valider réabonnement</span>
-  <svg xmlns="http://www.w3.org/2000/svg" 
-       className="h-5 w-5" 
-       fill="none" 
-       viewBox="0 0 24 24" 
-       stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-</button>
+                <button onClick={() => validateReabonnement(p.id)} className="px-3 py-1 bg-blue-600 rounded text-white">Réabonnement</button>
+                <button onClick={() => creditWallet(p.id)} className="px-3 py-1 bg-purple-600 rounded text-white">Créditer portefeuille</button>
               </td>
             </tr>
           ))}
         </tbody>
-      
-</table>
+      </table>
 
-<div className="flex justify-center items-center mt-4 space-x-2">
-  <button
-    disabled={currentPage === 1}
-    onClick={() => setCurrentPage(currentPage - 1)}
-    className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50"
-  >
-    Précédent
-  </button>
-
-  <span>Page {currentPage} / {totalPages}</span>
-
-  <button
-    disabled={currentPage === totalPages}
-    onClick={() => setCurrentPage(currentPage + 1)}
-    className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50"
-  >
-    Suivant
-  </button>
-</div>
-
-
-
-
+      {/* ===== PAGINATION ===== */}
+      <div className="flex justify-center items-center mt-4 space-x-2">
+        <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50">Précédent</button>
+        <span>Page {currentPage} / {totalPages}</span>
+        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="px-3 py-1 bg-gray-700 rounded disabled:opacity-50">Suivant</button>
+      </div>
 
       {/* ===== MODAL ADD ===== */}
       {showForm && (
         <div className="bg-gray-800 p-4 mt-4 rounded">
           <input placeholder="Nom" onChange={(e)=>setNewPartner({...newPartner, name:e.target.value})}/>
-<input placeholder="Prénom" onChange={(e)=>setNewPartner({...newPartner, prenom:e.target.value})}/>
-<input placeholder="Email" onChange={(e)=>setNewPartner({...newPartner, email:e.target.value})}/>
-<input placeholder="Structure" onChange={(e)=>setNewPartner({...newPartner, structure:e.target.value})}/>
-<input placeholder="Pays" onChange={(e)=>setNewPartner({...newPartner, pays:e.target.value})}/>
-<input placeholder="Ville" onChange={(e)=>setNewPartner({...newPartner, ville:e.target.value})}/>
-<input placeholder="Quartier" onChange={(e)=>setNewPartner({...newPartner, quartier:e.target.value})}/>
-<input placeholder="Téléphone" onChange={(e)=>setNewPartner({...newPartner, telephone:e.target.value})}/>
-<input placeholder="Password" onChange={(e)=>setNewPartner({...newPartner, password:e.target.value})}/>
-
+          <input placeholder="Prénom" onChange={(e)=>setNewPartner({...newPartner, prenom:e.target.value})}/>
+          <input placeholder="Email" onChange={(e)=>setNewPartner({...newPartner, email:e.target.value})}/>
+          <input placeholder="Structure" onChange={(e)=>setNewPartner({...newPartner, structure:e.target.value})}/>
+          <input placeholder="Pays" onChange={(e)=>setNewPartner({...newPartner, pays:e.target.value})}/>
+          <input placeholder="Ville" onChange={(e)=>setNewPartner({...newPartner, ville:e.target.value})}/>
+          <input placeholder="Quartier" onChange={(e)=>setNewPartner({...newPartner, quartier:e.target.value})}/>
+          <input placeholder="Téléphone" onChange={(e)=>setNewPartner({...newPartner, telephone:e.target.value})}/>
+          <input placeholder="Password" onChange={(e)=>setNewPartner({...newPartner, password:e.target.value})}/>
+          <input placeholder="Code Promo" onChange={(e)=>setNewPartner({...newPartner, codePromo:e.target.value})}/>
           <button onClick={addPartner}>Créer</button>
         </div>
       )}
@@ -321,11 +303,14 @@ const validateReabonnement = async (id) => {
           <input value={editData.name} onChange={(e)=>setEditData({...editData,name:e.target.value})}/>
           <input value={editData.email} onChange={(e)=>setEditData({...editData,email:e.target.value})}/>
           <input value={editData.structure} onChange={(e)=>setEditData({...editData,structure:e.target.value})}/>
-          <input value={editData.country} onChange={(e)=>setEditData({...editData,country:e.target.value})}/>
+          <input value={editData.pays} onChange={(e)=>setEditData({...editData,pays:e.target.value})}/>
+          <input value={editData.ville} onChange={(e)=>setEditData({...editData,ville:e.target.value})}/>
+          <input value={editData.quartier} onChange={(e)=>setEditData({...editData,quartier:e.target.value})}/>
+          <input value={editData.telephone} onChange={(e)=>setEditData({...editData,telephone:e.target.value})}/>
+          <input value={editData.codePromo} onChange={(e)=>setEditData({...editData,codePromo:e.target.value})}/>
           <button onClick={saveEdit}>Sauvegarder</button>
         </div>
       )}
-
     </div>
   );
 }

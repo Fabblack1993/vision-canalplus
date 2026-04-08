@@ -3,11 +3,12 @@ const pool = require('../db');
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 
+
 // ---- Liste de tous les partenaires ----
 router.get('/partners', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, name, prenom, email, role, status, structure, pays, ville, quartier, telephone FROM users WHERE role='partner'"
+      "SELECT id, name, prenom, email, role, status, structure, pays, ville, quartier, telephone, codePromo, wallet_balance FROM users WHERE role='partner'"
     );
     res.json(rows);
   } catch (err) {
@@ -20,7 +21,7 @@ router.get('/partners', async (req, res) => {
 router.get('/partners/pending', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, name, prenom, email, structure, pays, ville, quartier, telephone FROM users WHERE role='partner' AND status='pending'"
+      "SELECT id, name, prenom, email, structure, pays, ville, quartier, telephone, codePromo FROM users WHERE role='partner' AND status='pending'"
     );
     res.json(rows);
   } catch (err) {
@@ -81,10 +82,23 @@ router.post("/admin/notifications", async (req, res) => {
   }
 });
 
+// Récupérer les notifications récentes
+router.get("/admin/notifications", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM notifications ORDER BY id DESC LIMIT 5"
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // ---- Modifier un partenaire ----
 router.put('/partners/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, prenom, email, structure, pays, ville, quartier, telephone } = req.body;
+  const { name, prenom, email, structure, pays, ville, quartier, codePromo, telephone } = req.body;
 
   try {
     const [rows] = await pool.query("SELECT * FROM users WHERE id=?", [id]);
@@ -92,9 +106,9 @@ router.put('/partners/:id', async (req, res) => {
 
     await pool.query(
       `UPDATE users 
-       SET name=?, prenom=?, email=?, structure=?, pays=?, ville=?, quartier=?, telephone=? 
+       SET name=?, prenom=?, email=?, structure=?, pays=?, ville=?, quartier=?, codePromo=?, telephone=? 
        WHERE id=?`,
-      [name, prenom, email, structure, pays, ville, quartier, telephone, id]
+      [name, prenom, email, structure, pays, ville, quartier, codePromo, telephone, id]
     );
 
     res.json({ message: "Partenaire modifié avec succès" });
@@ -223,13 +237,13 @@ router.put('/partners/:id/reject', async (req, res) => {
 
 // ---- Créer un partenaire directement ----
 router.post("/partners", async (req, res) => {
-  const { name, prenom, structure, pays, ville, quartier, telephone, email, password } = req.body;
+  const { name, prenom, structure, pays, ville, quartier, telephone, codePromo, email, password } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
-      `INSERT INTO users (name, prenom, structure, pays, ville, quartier, telephone, email, password, role, status) 
+      `INSERT INTO users (name, prenom, structure, pays, ville, quartier, telephone, email, password, codePromo, role, status) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'partner', 'pending')`,
-      [name, prenom, structure, pays, ville, quartier, telephone, email, hashedPassword]
+      [name, prenom, structure, pays, ville, quartier, telephone, codePromo, email, hashedPassword]
     );
     res.json({ message: "Partenaire ajouté avec succès" });
   } catch (err) {
@@ -238,5 +252,35 @@ router.post("/partners", async (req, res) => {
   }
 });
 
+ // Créditer le portefeuille d'un partenaire
+router.post("/partners/:id/credit", async (req, res) => {
+  const partnerId = req.params.id;
+  const { amount } = req.body;
+
+  if (!amount || isNaN(amount) || Number(amount) <= 0) {
+    return res.status(400).json({ message: "Montant invalide" });
+  }
+
+  try {
+    // Vérifier que l'utilisateur existe et est un partenaire
+    const [rows] = await pool.execute("SELECT wallet_balance, role FROM users WHERE id = ?", [partnerId]);
+    if (rows.length === 0) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    const user = rows[0];
+    if (user.role !== "partner") {
+      return res.status(403).json({ message: "Seuls les partenaires peuvent recevoir un crédit" });
+    }
+
+    const newBalance = Number(user.wallet_balance) + Number(amount);
+
+    // Mettre à jour le wallet_balance
+    await pool.execute("UPDATE users SET wallet_balance = ? WHERE id = ?", [newBalance, partnerId]);
+
+    return res.json({ message: "Portefeuille crédité avec succès", wallet_balance: newBalance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+});
 
 module.exports = router;
