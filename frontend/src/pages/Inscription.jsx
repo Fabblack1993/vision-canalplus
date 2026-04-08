@@ -1,23 +1,28 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ pour redirection
 import logo from "../assets/logo.png";
 
 export default function InscriptionPartenaire() {
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    nom: "",
+    name: "",
     prenom: "",
     structure: "",
     pays: "",
     ville: "",
     quartier: "",
     telephone: "",
-    motDePasse: "",
-    email: "",       
+    password: "",
+    email: "",   
+    codePromo: ""    
   });
 
   const [envoye, setEnvoye] = useState(false);
+  const navigate = useNavigate(); // ✅ hook pour naviguer
+
   const champsObligatoires = [
-    "nom", "prenom", "structure", "pays",
-    "ville", "quartier", "telephone", "motDePasse"
+    "name", "prenom", "structure", "pays",
+    "ville", "quartier", "telephone", "password"
   ];
   const champsRemplis = champsObligatoires.filter(
     (champ) => formData[champ].trim() !== ""
@@ -30,14 +35,35 @@ export default function InscriptionPartenaire() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Données envoyées :", formData);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch("http://localhost:5000/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      // ✅ si le backend renvoie une erreur
+      const text = await response.text();
+      throw new Error(text || "Erreur serveur");
+    }
+
+    const data = await response.json(); // ✅ seulement si c’est du JSON
+    alert(data.message);
     setEnvoye(true);
-  };
+
+    
+  } catch (error) {
+    console.error("Erreur lors de l'inscription :", error);
+    alert("Échec de l'inscription : " + error.message);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -80,8 +106,8 @@ export default function InscriptionPartenaire() {
             </label>
             <input
               type="text"
-              name="nom"
-              value={formData.nom}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               required
               placeholder="Ex: Dupont"
@@ -186,19 +212,29 @@ export default function InscriptionPartenaire() {
           </div>
 
           {/* Mot de passe */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              name="motDePasse"
-              value={formData.motDePasse}
-              onChange={handleChange}
-              required
-              placeholder="Minimum 8 caractères"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
+         <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Mot de passe <span className="text-red-500">*</span>
+  </label>
+  <div className="flex items-center">
+    <input
+      type={showPassword ? "text" : "password"}   // <-- bascule entre visible et masqué
+      name="password"
+      value={formData.password}
+      onChange={handleChange}
+      required
+      placeholder="Minimum 8 caractères"
+      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)} // <-- change l’état
+      className="ml-2 text-sm text-blue-600 hover:underline"
+    >
+      {showPassword ? "Masquer" : "Afficher"}
+    </button>
+  </div>
+           
           </div>
 
           {/* Email (facultatif) */}
@@ -216,7 +252,20 @@ export default function InscriptionPartenaire() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
-
+{/* Code promo (facultatif) */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Code promo <span className="text-gray-400 text-xs">(facultatif)</span>
+  </label>
+  <input
+    type="text"
+    name="codePromo"
+    value={formData.codePromo}
+    onChange={handleChange}
+    placeholder="Ex: CANAL2026"
+    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
           {/* Bouton Envoyer */}
           <button
             type="submit"

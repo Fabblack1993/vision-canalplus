@@ -1,30 +1,52 @@
 import { useState } from "react";
-import "../styles/loginForm.css"; 
-
+import { useNavigate } from "react-router-dom";
+import "../styles/loginForm.css";
 
 function LoginForm() {
-  const [nom, setNom] = useState("");
+  const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
-  
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  let newErrors = {};
+    let newErrors = {};
+    if (!name) newErrors.name = true;
+    if (!contact) newErrors.contact = true;
+    if (!password) newErrors.password = true;
 
-  if (!nom) newErrors.nom = true;
-  if (!contact) newErrors.contact = true;
-  if (!password) newErrors.password = true;
-   console.log("Errors:", newErrors);
+    setErrors(newErrors);
 
-  setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-  if (Object.keys(newErrors).length === 0) {
-    console.log({ nom, contact, password });
-  }
-};
+    try {
+      const response = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, contact, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        alert("Connexion réussie !");
+
+        if (data.role === "partner") {
+          navigate("/partner/dashboard");
+        } else if (data.role === "admin") {
+          navigate("/admin/dashboard");
+        }
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la connexion :", error);
+    }
+  };
+
   return (
     <div className="container">
       <form className="form" onSubmit={handleSubmit}>
@@ -33,9 +55,9 @@ function LoginForm() {
         <input
           type="text"
           placeholder="Nom"
-          value={nom}
-          onChange={(e) => setNom(e.target.value)}
-           className={errors.nom ? "error" : ""}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={errors.name ? "error" : ""}
         />
 
         <input
@@ -51,7 +73,7 @@ function LoginForm() {
           placeholder="Mot de passe"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-           className={errors.password ? "error" : ""}
+          className={errors.password ? "error" : ""}
         />
 
         <button type="submit">Se connecter</button>
